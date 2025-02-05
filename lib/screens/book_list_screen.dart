@@ -5,11 +5,11 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import 'add_book_screen.dart';
-import 'book.dart';
-import 'database_helper.dart';
+import '../models/book.dart';
+import '../helpers/database_helper.dart';
 import 'edit_book_screen.dart';
-import 'widgets/book_list.dart';
-import 'widgets/book_search_bar.dart';
+import '../widgets/book_list.dart';
+import '../widgets/book_search_bar.dart';
 
 class BookListScreen extends StatefulWidget {
   const BookListScreen({super.key});

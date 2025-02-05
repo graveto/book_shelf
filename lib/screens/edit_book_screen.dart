@@ -1,48 +1,50 @@
+// File: edit_book_screen.dart
 import 'package:flutter/material.dart';
-import '../book.dart';
-import '../database_helper.dart';
+import '../models/book.dart';
+import '../helpers/database_helper.dart';
 
-class AddBookScreen extends StatefulWidget {
-  final String isbn;
+class EditBookScreen extends StatefulWidget {
+  final Book book;
 
-  const AddBookScreen({super.key, required this.isbn});
+  EditBookScreen({required this.book});
 
   @override
-  _AddBookScreenState createState() => _AddBookScreenState();
+  _EditBookScreenState createState() => _EditBookScreenState();
 }
 
-class _AddBookScreenState extends State<AddBookScreen> {
+class _EditBookScreenState extends State<EditBookScreen> {
   final _formKey = GlobalKey<FormState>();
-  late var _titleController = TextEditingController();
-  late var _authorController = TextEditingController();
+  late TextEditingController _titleController;
+  late TextEditingController _authorController;
   late TextEditingController _isbnController;
 
   @override
   void initState() {
     super.initState();
-    _isbnController = TextEditingController(text: widget.isbn); // Initialize with ISBN
-    _titleController = TextEditingController();
-    _authorController = TextEditingController();
+    _titleController = TextEditingController(text: widget.book.title);
+    _authorController = TextEditingController(text: widget.book.author);
+    _isbnController = TextEditingController(text: widget.book.isbn);
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _authorController.dispose();
+    _isbnController.dispose();
     super.dispose();
   }
 
   void _submitData() {
     if (_formKey.currentState!.validate()) {
-      final newBook = Book(
+      final updatedBook = Book(
         title: _titleController.text,
         author: _authorController.text,
-        isbn: widget.isbn,
+        isbn: _isbnController.text, // Keep the ISBN same
       );
 
-      DatabaseHelper.instance.insertBook(newBook); // Add to database
+      DatabaseHelper.instance.updateBook(updatedBook); // Update in database
 
-      Navigator.of(context).pop(newBook); // Return the new book data
+      Navigator.of(context).pop(updatedBook); // Return the updated book data
     }
   }
 
@@ -50,7 +52,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Book Manually'),
+        title: Text('Edit Book'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -61,12 +63,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
               TextFormField(
                 decoration: InputDecoration(labelText: 'ISBN'),
                 controller: _isbnController,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the ISBN';
-                  }
-                  return null;
-                },
+                enabled: false, // Make ISBN field read-only
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Title'),
@@ -91,7 +88,7 @@ class _AddBookScreenState extends State<AddBookScreen> {
               SizedBox(height: 30),
               ElevatedButton(
                 onPressed: _submitData,
-                child: Text('Add Book'),
+                child: Text('Update Book'),
               ),
             ],
           ),

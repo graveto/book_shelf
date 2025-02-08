@@ -33,9 +33,10 @@ class _BookListScreenState extends State<BookListScreen> {
 
   Future<void> _loadBooks() async {
     final bookList = await DatabaseHelper.instance.getBooks();
-    bookList.add(Book(title: 'The Lord of the Rings', author: 'J.R.R. Tolkien', isbn: '978-0547928227'));// Get books from the database
+
     setState(() {
       books = bookList;
+      books.sort((a, b) => int.parse(a.number).compareTo(int.parse(b.number)));
       filteredBooks = List.from(books);
     });
   }
@@ -53,78 +54,12 @@ class _BookListScreenState extends State<BookListScreen> {
         ),
       ),
     );
-    // setState(() {
-    //   _isScanning = !_isScanning;
-    // });
-  }
-
-  void _onDetect(BarcodeCapture capture) async {
-    if (!_isScanning) return;
-
-    final Barcode? barcode = capture.barcodes.first;
-
-    if (barcode != null) {
-      final format = barcode.format;
-      String? isbn = barcode.rawValue;
-
-      if (format == BarcodeFormat.ean13 ||
-          format == BarcodeFormat.ean8 ||
-          format == BarcodeFormat.code128 ||
-          format == BarcodeFormat.qrCode) {
-        if (isbn != null) {
-          if (isbn.length == 10) {
-            isbn = _convertISBN10to13(isbn);
-            if (isbn == null) {
-              _showSnackBar("Invalid ISBN-10");
-              setState(() {
-                _isScanning = false;
-              });
-              return;
-            }
-          }
-
-          setState(() {
-            _isScanning = false;
-          });
-          _controller?.stop();
-
-          bool bookExists = books.any((book) => book.isbn == isbn) ||
-              filteredBooks.any((book) => book.isbn == isbn);
-
-          if (bookExists) {
-            _showSnackBar('You already own this book'); // Show message
-          } else {
-            await _fetchAndAddBook(isbn);
-          }
-        }
-      }
-    }
-  }
-
-  String? _convertISBN10to13(String isbn10) {
-    if (isbn10.length != 10) {
-      return null; // Not a valid ISBN-10
-    }
-
-    // Replace 'X' with '10' if present
-    isbn10 = isbn10.replaceAll('X', '10');
-
-    // Add the "978" prefix
-    String isbn13 = "978${isbn10.substring(0, 9)}";
-
-    // Calculate the check digit for ISBN-13 (Corrected calculation)
-    int sum = 0;
-    for (int i = 0; i < 12; i++) {
-      int digit = int.parse(isbn13[i]);
-      sum += (i % 2 == 0) ? digit : digit * 3;
-    }
-    int checkDigit = (10 - (sum % 10)) % 10;
-    isbn13 += checkDigit.toString();
-
-    return isbn13;
   }
 
   Future<void> _fetchAndAddBook(String isbn) async {
+    String title = '';
+    String author = '';
+
     try {
       final response = await http.get(Uri.parse(
           'https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn'));
@@ -135,24 +70,32 @@ class _BookListScreenState extends State<BookListScreen> {
         if (jsonData['totalItems'] > 0) {
           final bookData = jsonData['items'][0]['volumeInfo'];
 
-          String title = bookData['title'] ?? 'Unknown Title';
-          String author = 'Unknown Author';
+          title = bookData['title'] ?? 'Unknown Title';
 
           if (bookData.containsKey('authors') && bookData['authors'] is List) {
             author = bookData['authors'].join(', ');
           }
-          Book book = Book(title: title, author: author, isbn: isbn);
+
+          Book book = Book(
+              title: title, author: author, isbn: isbn, series: '', number: '');
 
           await DatabaseHelper.instance.insertBook(book);
           setState(() {
-            books.add(book);
+            bool bookExists = books.any((book) => book.isbn == isbn); // ||
+            //  filteredBooks.any((book) => book.isbn == isbn);
+
+            if (bookExists) {
+              _showSnackBar('You already own this book'); // Show message
+            } else {
+              books.add(book);
+              _showSnackBar('Book added');
+            }
+
             filteredBooks = List.from(books);
-            _showSnackBar('Book added');
+
             _controller?.stop();
             _isScanning = false;
           });
-
-
         } else {
           final newBook = await Navigator.push(
             context,
@@ -161,16 +104,15 @@ class _BookListScreenState extends State<BookListScreen> {
             ),
           );
 
-          if (newBook!= null) {
+          if (newBook != null) {
             // Add the new book to the list
             setState(() {
               books.add(newBook as Book);
               filteredBooks = List.from(books);
+              _controller?.stop();
+              _isScanning = false;
             });
           }
-          // _showSnackBar('Book not found');
-          // _controller?.stop();
-          // _isScanning = false;
         }
       } else {
         setState(() {
@@ -194,7 +136,9 @@ class _BookListScreenState extends State<BookListScreen> {
       filteredBooks = books
           .where((book) =>
               book.title.toLowerCase().contains(query.toLowerCase()) ||
-              book.author.toLowerCase().contains(query.toLowerCase()))
+              book.author.toLowerCase().contains(query.toLowerCase()) ||
+              book.series.toLowerCase().contains(query.toLowerCase()) ||
+              book.number.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -221,7 +165,7 @@ class _BookListScreenState extends State<BookListScreen> {
       ),
     );
 
-    if (newBook!= null) {
+    if (newBook != null) {
       setState(() {
         books.add(newBook as Book);
         filteredBooks = List.from(books);
@@ -237,11 +181,11 @@ class _BookListScreenState extends State<BookListScreen> {
       ),
     );
 
-    if (updatedBook!= null) {
+    if (updatedBook != null) {
       setState(() {
         // Find the index of the book to update
         final index = books.indexWhere((b) => b.isbn == updatedBook.isbn);
-        if (index!= -1) {
+        if (index != -1) {
           books[index] = updatedBook as Book;
           filteredBooks = List.from(books); // Update filtered list
         }
@@ -252,8 +196,25 @@ class _BookListScreenState extends State<BookListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color.fromARGB(
+        255,
+        140,
+        140,
+        140,
+      ),
       appBar: AppBar(
-        title: Text('My Book Collection'),
+        title: Text(
+          'Shelfie',
+          style: TextStyle(
+            color: Color.fromARGB(
+              255,
+              28,
+              20,
+              20,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.brown,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -265,17 +226,9 @@ class _BookListScreenState extends State<BookListScreen> {
               child: BookList(
                 books: filteredBooks,
                 onDelete: _deleteBook,
-                onEdit: _editBook,// Pass the _deleteBook function
+                onEdit: _editBook, // Pass the _deleteBook function
               ),
             ),
-            if (_isScanning)
-              Expanded(
-                flex: 2,
-                child: MobileScanner(
-                  controller: _controller,
-                  onDetect: _onDetect,
-                ),
-              ),
           ],
         ),
       ),

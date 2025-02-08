@@ -17,6 +17,8 @@ class _EditBookScreenState extends State<EditBookScreen> {
   late TextEditingController _titleController;
   late TextEditingController _authorController;
   late TextEditingController _isbnController;
+  late TextEditingController _seriesController;
+  late TextEditingController _numberController;
 
   @override
   void initState() {
@@ -24,6 +26,8 @@ class _EditBookScreenState extends State<EditBookScreen> {
     _titleController = TextEditingController(text: widget.book.title);
     _authorController = TextEditingController(text: widget.book.author);
     _isbnController = TextEditingController(text: widget.book.isbn);
+    _seriesController = TextEditingController(text: widget.book.series);
+    _numberController = TextEditingController(text: widget.book.number);
   }
 
   @override
@@ -31,6 +35,8 @@ class _EditBookScreenState extends State<EditBookScreen> {
     _titleController.dispose();
     _authorController.dispose();
     _isbnController.dispose();
+    _seriesController.dispose();
+    _numberController.dispose();
     super.dispose();
   }
 
@@ -39,11 +45,12 @@ class _EditBookScreenState extends State<EditBookScreen> {
       final updatedBook = Book(
         title: _titleController.text,
         author: _authorController.text,
-        isbn: _isbnController.text, // Keep the ISBN same
+        isbn: _isbnController.text,
+        series: _seriesController.text,
+        number: _numberController.text, // Keep the ISBN same
       );
 
       DatabaseHelper.instance.updateBook(updatedBook); // Update in database
-
       Navigator.of(context).pop(updatedBook); // Return the updated book data
     }
   }
@@ -51,8 +58,25 @@ class _EditBookScreenState extends State<EditBookScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color.fromARGB(
+        255,
+        140,
+        140,
+        140,
+      ),
       appBar: AppBar(
-        title: Text('Edit Book'),
+        title: Text(
+          'Edit Book',
+          style: TextStyle(
+            color: Color.fromARGB(
+              255,
+              28,
+              20,
+              20,
+            ),
+          ),
+        ),
+        backgroundColor: Colors.brown,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -84,6 +108,20 @@ class _EditBookScreenState extends State<EditBookScreen> {
                   }
                   return null;
                 },
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Series'),
+                controller: _seriesController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the series';
+                  }
+                  return null;
+                },
+              ),
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Book Number'),
+                controller: _numberController,
               ),
               SizedBox(height: 30),
               ElevatedButton(

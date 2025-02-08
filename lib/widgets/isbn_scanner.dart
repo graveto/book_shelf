@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+
 class ISBNScanner extends StatefulWidget {
   final Function(String) onISBNScanned;
 
@@ -11,12 +12,18 @@ class ISBNScanner extends StatefulWidget {
 }
 
 class _ISBNScannerState extends State<ISBNScanner> {
-  bool _isScanning = false;
-  MobileScannerController? _controller;
+  bool _isScanning = true;
+  final MobileScannerController _controller = MobileScannerController();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.start();
+  }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -24,20 +31,20 @@ class _ISBNScannerState extends State<ISBNScanner> {
     if (!_isScanning) return;
 
     final Barcode? barcode = capture.barcodes.first;
-
     if (barcode!= null &&
         (barcode.format == BarcodeFormat.ean13 ||
             barcode.format == BarcodeFormat.ean8 ||
             barcode.format == BarcodeFormat.code128)) {
       final isbn = barcode.rawValue;
       if (isbn!= null) {
-        _controller?.stop();
-        setState(() {
-          _isScanning = false;
-        });
         widget.onISBNScanned(isbn); // Call the callback with the ISBN
       }
+      _controller.stop();
+      setState(() {
+        _isScanning = false;
+      });
     }
+    Navigator.of(context).pop();
   }
 
   @override

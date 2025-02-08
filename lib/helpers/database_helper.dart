@@ -12,6 +12,8 @@ class DatabaseHelper {
   static final columnTitle = 'title';
   static final columnAuthor = 'author';
   static final columnIsbn = 'isbn';
+  static final columnSeries = 'series';
+  static final columnNumber = 'number';
 
   // Make this a singleton class
   DatabaseHelper._privateConstructor();
@@ -40,7 +42,9 @@ class DatabaseHelper {
             $columnId INTEGER PRIMARY KEY,
             $columnTitle TEXT NOT NULL,
             $columnAuthor TEXT NOT NULL,
-            $columnIsbn TEXT NOT NULL
+            $columnIsbn TEXT NOT NULL,
+            $columnSeries TEXT NOT NULL,
+            $columnNumber TEXT NOT NULL
           )
           ''');
   }
@@ -91,6 +95,8 @@ class DatabaseHelper {
       columnTitle: book.title,
       columnAuthor: book.author,
       columnIsbn: book.isbn,
+      columnSeries: book.series,
+      columnNumber: book.number,
     };
   }
 
@@ -105,6 +111,8 @@ class DatabaseHelper {
       title: map[columnTitle],
       author: map[columnAuthor],
       isbn: map[columnIsbn],
+      series: map[columnSeries],
+      number: map[columnNumber],
     );
   }
 
